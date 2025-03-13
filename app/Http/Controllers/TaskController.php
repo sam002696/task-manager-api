@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Task;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
 
 class TaskController extends Controller
 {
@@ -13,39 +15,42 @@ class TaskController extends Controller
      */
     public function index(Request $request)
     {
-        //  Only retrieving tasks belonging to the authenticated user
-        $query = Task::where('user_id', Auth::id());
+        $userId = Auth::id();
+        $cacheKey = "tasks_{$userId}_" . md5(json_encode($request->all())); // Unique cache key
 
-        //  Searching by name
-        if ($request->filled('search')) {
-            $query->where('name', 'LIKE', '%' . $request->search . '%');
-        }
+        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $userId) {
+            $query = Task::where('user_id', $userId);
 
-        //  Filtering by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+            // Filters
+            if ($request->filled('search')) {
+                $query->where('name', 'LIKE', '%' . $request->search . '%');
+            }
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
 
-        //  Filtering by due date range
-        if ($request->filled('due_date_from') && $request->filled('due_date_to')) {
-            $query->whereBetween('due_date', [$request->due_date_from, $request->due_date_to]);
-        }
+            if ($request->filled('due_date_from') && $request->filled('due_date_to')) {
+                $startDate = Carbon::parse($request->due_date_from)->startOfDay(); // 2025-03-10 00:00:00
+                $endDate = Carbon::parse($request->due_date_to)->endOfDay();       // 2025-03-19 23:59:59
 
-        //  Sorting results (Default: Latest first)
-        $tasks = $query->orderBy('created_at', 'desc')->paginate(10);
+                $query->whereBetween('due_date', [$startDate, $endDate]);
+            }
 
-        return response()->json([
-            'data' => $tasks->items(),
-            'status' => 'success',
-            'message' => 'Tasks retrieved successfully',
-            'meta' => [
-                'current_page' => $tasks->currentPage(),
-                'per_page' => $tasks->perPage(),
-                'total' => $tasks->total(),
-                'total_pages' => $tasks->lastPage(),
-                'has_more_pages' => $tasks->hasMorePages(),
-            ]
-        ]);
+            $tasks = $query->orderBy('created_at', 'desc')->paginate(10);
+
+            return response()->json([
+                'data' => $tasks->items(),
+                'status' => 'success',
+                'message' => 'Tasks retrieved successfully',
+                'meta' => [
+                    'current_page' => $tasks->currentPage(),
+                    'per_page' => $tasks->perPage(),
+                    'total' => $tasks->total(),
+                    'total_pages' => $tasks->lastPage(),
+                    'has_more_pages' => $tasks->hasMorePages(),
+                ]
+            ]);
+        });
     }
 
 
@@ -70,6 +75,9 @@ class TaskController extends Controller
                 'status' => $validated['status'],
                 'due_date' => $validated['due_date'],
             ]);
+
+            // Clearing Cache when a new task is created
+            Cache::forget("tasks_" . Auth::id());
 
             return response()->json([
                 'data' => $task,
@@ -164,6 +172,9 @@ class TaskController extends Controller
 
             $task->update($validated);
 
+            // Clearing Cache when a task is updated
+            Cache::forget("tasks_" . Auth::id());
+
             return response()->json([
                 'data' => $task,
                 'status' => 'success',
@@ -222,6 +233,9 @@ class TaskController extends Controller
 
             //  Deleting Task
             $task->delete();
+
+            //  Clearing Cache when a task is deleted
+            Cache::forget("tasks_" . Auth::id());
 
             return response()->json([
                 'data' => null,
