@@ -16,9 +16,9 @@ class TaskService
     public function getAllTasks($request)
     {
         $userId = Auth::id();
-        $cacheKey = "tasks_{$userId}_" . md5(json_encode($request->all()));
+        $cacheKey = "tasks_{$userId}";
 
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $userId) {
+        return Cache::remember($cacheKey, now()->addMinutes(0), function () use ($request, $userId) {
             $query = Task::where('user_id', $userId);
 
             // Apply Filters
