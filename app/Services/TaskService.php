@@ -35,7 +35,10 @@ class TaskService
                 ]);
             }
 
-            $tasks = $query->orderBy('created_at', 'desc')->paginate(10);
+            $sortOrder = $request->get('sort', 'desc'); // Default: Newest First
+            $query->orderBy('due_date', $sortOrder);
+
+            $tasks = $query->paginate(10);
 
             return [
                 'tasks' => $tasks->items(),
