@@ -36,7 +36,7 @@ class TaskService
             }
 
             $sortOrder = $request->get('sort', 'desc'); // Default: Newest First
-            $query->orderBy('due_date', $sortOrder);
+            $query->orderBy('created_at', $sortOrder);
 
             $tasks = $query->paginate(10);
 
