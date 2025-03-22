@@ -12,6 +12,7 @@ use Exception;
 
 class TaskController extends Controller
 {
+    // Injecting the TaskService into the controller.
     protected $taskService;
 
     public function __construct(TaskService $taskService)
@@ -20,12 +21,14 @@ class TaskController extends Controller
     }
 
     /**
-     * Get all tasks with filtering.
+     * Getting all tasks with filtering.
      */
     public function index(Request $request)
     {
+        // Delegating task retrieval logic to TaskService
         $tasksData = $this->taskService->getAllTasks($request);
 
+        // Returning a structured success response
         return ApiResponseService::successResponse(
             $tasksData['tasks'],
             'Tasks retrieved successfully',
@@ -35,36 +38,43 @@ class TaskController extends Controller
     }
 
     /**
-     * Store a new task.
+     * Storing a new task.
      */
     public function store(Request $request)
     {
         try {
+            // Delegating task creation logic to TaskService
             $task = $this->taskService->createTask($request);
 
+            // Returning a structured success response
             return ApiResponseService::successResponse(
                 $task,
                 'Task created successfully',
                 201
             );
         } catch (ValidationException $e) {
+            // Handling validation errors
             return ApiResponseService::handleValidationError($e);
         } catch (Exception $e) {
+            // Handling unexpected errors
             return ApiResponseService::handleUnexpectedError($e);
         }
     }
 
     /**
-     * Show a single task.
+     * Showing a single task.
      */
     public function show($id)
     {
+        // Delegating task retrieval logic to TaskService
         $task = $this->taskService->getTaskById($id);
 
         if (!$task) {
+            // Handling task not found
             return ApiResponseService::errorResponse('Task not found or unauthorized access', 404);
         }
 
+        // Returning a structured success response
         return ApiResponseService::successResponse(
             $task,
             'Task retrieved successfully'
@@ -72,45 +82,54 @@ class TaskController extends Controller
     }
 
     /**
-     * Update an existing task.
+     * Updating an existing task.
      */
     public function update(Request $request, $id)
     {
         try {
+            // Delegating task update logic to TaskService
             $task = $this->taskService->updateTask($request, $id);
 
             if (!$task) {
+                // Handling task not found
                 return ApiResponseService::errorResponse('Task not found or unauthorized access', 403);
             }
 
+            // Returning a structured success response
             return ApiResponseService::successResponse(
                 $task,
                 'Task updated successfully'
             );
         } catch (ValidationException $e) {
+            // Handling validation errors
             return ApiResponseService::handleValidationError($e);
         } catch (Exception $e) {
+            // Handling unexpected errors
             return ApiResponseService::handleUnexpectedError($e);
         }
     }
 
     /**
-     * Delete a task.
+     * Deleting a task.
      */
     public function destroy($id)
     {
         try {
+            // Delegating task deletion logic to TaskService
             $deleted = $this->taskService->deleteTask($id);
 
             if (!$deleted) {
+                // Handling task not found
                 return ApiResponseService::errorResponse('Task not found or unauthorized access', 403);
             }
 
+            // Returning a structured success response
             return ApiResponseService::successResponse(
                 null,
                 'Task deleted successfully'
             );
         } catch (Exception $e) {
+            // Handling unexpected errors
             return ApiResponseService::handleUnexpectedError($e);
         }
     }

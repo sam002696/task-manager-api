@@ -11,23 +11,26 @@ use Carbon\Carbon;
 class TaskService
 {
     /**
-     * Retrieve all tasks for the authenticated user with filters.
+     * Retrieving all tasks for the authenticated user with filters.
      */
     public function getAllTasks($request)
     {
+        // Cache Key
         $userId = Auth::id();
         $cacheKey = "tasks_{$userId}";
 
+        // Retrieve tasks from cache if available
         return Cache::remember($cacheKey, now()->addMinutes(0), function () use ($request, $userId) {
             $query = Task::where('user_id', $userId);
 
-            // Apply Filters
+            // Appling Filters
             if ($request->filled('search')) {
                 $query->where('name', 'LIKE', '%' . $request->search . '%');
             }
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
             }
+            // Filtering by due date range
             if ($request->filled('due_date_from') && $request->filled('due_date_to')) {
                 $query->whereBetween('due_date', [
                     Carbon::parse($request->due_date_from)->startOfDay(),
@@ -35,9 +38,11 @@ class TaskService
                 ]);
             }
 
+            // Sorting
             $sortOrder = $request->get('sort', 'desc'); // Default: Newest First
             $query->orderBy('created_at', $sortOrder);
 
+            // Paginating
             $tasks = $query->paginate(10);
 
             return [
@@ -54,10 +59,11 @@ class TaskService
     }
 
     /**
-     * Create a new task.
+     * Creating a new task.
      */
     public function createTask($request)
     {
+        // Validating incoming request
         $validated = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -65,6 +71,7 @@ class TaskService
             'due_date' => 'nullable|date',
         ])->validate();
 
+        // Creating task
         $task = Task::create([
             'user_id' => Auth::id(),
             'name' => $validated['name'],
@@ -73,13 +80,14 @@ class TaskService
             'due_date' => $validated['due_date'] ?? null,
         ]);
 
+        // Clearing cache
         Cache::forget("tasks_" . Auth::id());
 
         return $task;
     }
 
     /**
-     * Retrieve a single task, ensuring ownership.
+     * Retrieving a single task, ensuring ownership.
      */
     public function getTaskById($id)
     {
@@ -87,16 +95,18 @@ class TaskService
     }
 
     /**
-     * Update a task.
+     * Updating a task.
      */
     public function updateTask($request, $id)
     {
+        // Retrieving task
         $task = $this->getTaskById($id);
 
         if (!$task) {
             return null;
         }
 
+        // Validating incoming request
         $validated = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
@@ -104,6 +114,7 @@ class TaskService
             'due_date' => 'nullable|date',
         ])->validate();
 
+        // Updating task
         $task->update($validated);
         Cache::forget("tasks_" . Auth::id());
 
@@ -111,16 +122,19 @@ class TaskService
     }
 
     /**
-     * Delete a task.
+     * Deleting a task.
      */
     public function deleteTask($id)
     {
+        // Retrieving task
         $task = $this->getTaskById($id);
 
+        // Deleting task
         if (!$task) {
             return null;
         }
 
+        // Clearing cache
         $task->delete();
         Cache::forget("tasks_" . Auth::id());
 
