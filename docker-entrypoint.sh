@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Wait for MySQL by retrying migration
+# Here it needs wait for MySQL by retrying migration
 until php artisan migrate --force; do
     echo "Waiting for DB to be ready..."
     sleep 3
