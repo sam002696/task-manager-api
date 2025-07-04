@@ -1,0 +1,70 @@
+name: Deploy Laravel to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Laravel Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPUnit tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:cache
+          php artisan test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Connect via SSH and Deploy
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /var/www/task-manager-api
+
+            echo "Pulling code from main"
+            git pull origin main
+
+            echo "Installing Composer dependencies"
+            sudo composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            echo "Setting permissions"
+            sudo chown -R $USER:www-data storage
+            sudo chown -R $USER:www-data bootstrap/cache
+            sudo chmod -R 775 storage
+            sudo chmod -R 775 bootstrap/cache
+
+            echo "Running Laravel maintenance commands"
+            sudo php artisan migrate
+            sudo php artisan config:cache
+            sudo php artisan route:cache
+
+            echo "Deployment complete"
