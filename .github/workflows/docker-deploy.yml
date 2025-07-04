@@ -1,0 +1,58 @@
+name: Build & Push Docker Image (dev)
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate new version tag
+        id: tagger
+        run: |
+          git fetch --tags
+          latest=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+          if [ -z "$latest" ]; then
+            new_tag="v1.0.0"
+          else
+            version=$(echo "$latest" | sed 's/^v//')
+            IFS='.' read -r major minor patch <<< "$version"
+            patch=$((patch + 1))
+            new_tag="v$major.$minor.$patch"
+          fi
+          echo "new_tag=$new_tag" >> $GITHUB_OUTPUT
+
+      - name: 🔐 Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 🛠️ Build Docker image using Compose
+        run: |
+          docker-compose build app
+
+      - name: 🏷️ Tag image with version and latest
+        run: |
+          TAG=${{ steps.tagger.outputs.new_tag }}
+          docker tag laravel-app ${{ secrets.DOCKER_REPO }}:$TAG
+          docker tag laravel-app ${{ secrets.DOCKER_REPO }}:latest
+
+      - name: 🚀 Push to Docker Hub
+        run: |
+          TAG=${{ steps.tagger.outputs.new_tag }}
+          docker push ${{ secrets.DOCKER_REPO }}:$TAG
+          docker push ${{ secrets.DOCKER_REPO }}:latest
+
+      - name: 🏷️ Create Git tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git tag ${{ steps.tagger.outputs.new_tag }}
+          git push origin ${{ steps.tagger.outputs.new_tag }}
