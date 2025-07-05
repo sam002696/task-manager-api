@@ -71,4 +71,3 @@ jobs:
           TAG=${{ needs.build.outputs.image-tag }}
           docker tag laravel-app ${{ secrets.DOCKER_REPO }}:$TAG
           docker push ${{ secrets.DOCKER_REPO }}:$TAG
-          docker push ${{ secrets.DOCKER_REPO }}:latest
