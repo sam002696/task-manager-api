@@ -30,81 +30,64 @@ git clone https://github.com/sam002696/task-manager-api.git
 ```bash
 sudo mkdir -p /var/www
 sudo mv ~/task-manager-api /var/www/task-manager-api
-
 ```
 
 ## 3. 🔧 Set Permissions
 
 ```bash
-
 sudo chown -R $USER:www-data /var/www/task-manager-api/storage
 sudo chown -R $USER:www-data /var/www/task-manager-api/bootstrap/cache
 
 sudo chmod -R 775 /var/www/task-manager-api/storage
 sudo chmod -R 775 /var/www/task-manager-api/bootstrap/cache
-
-
 ```
 
 ## 4. 🛠️ Install PHP & Extensions
 
 ```bash
-
 sudo apt update && sudo apt upgrade -y
 
 sudo apt install php php-cli php-mbstring php-xml php-bcmath php-curl php-zip php-mysql php-common php-tokenizer php-gd php-fpm unzip curl -y
-
-
 ```
 
 ## 5. 📦 Install Composer
 
 ```bash
-
 curl -sS https://getcomposer.org/installer | php
+
 sudo mv composer.phar /usr/local/bin/composer
-
-
-
 ```
 
 ## 6. 📦 Install & Configure MySQL
 
 ```bash
-
 sudo apt install mysql-server -y
+
 sudo mysql_secure_installation
-
-
 ```
 
 ### To allow external DB access (optional):
 
 ```bash
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
-
-
 ```
 
 ### Change:
 
 ```bash
 bind-address = 0.0.0.0
-
 ```
 
 ### Restart MySQL:
 
 ```bash
 sudo systemctl restart mysql
-
 ```
 
 ### Create Database & User
 
 ```bash
 sudo mysql -u root
-
 ```
 
 ### Inside MySQL shell:
@@ -122,7 +105,6 @@ EXIT;
 ```bash
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'YourRootPasswordHere';
 FLUSH PRIVILEGES;
-
 ```
 
 ## 7. ⚙️ Set Up Laravel Environment
@@ -156,15 +138,12 @@ sudo php artisan key:generate
 sudo php artisan migrate
 sudo php artisan config:cache
 sudo php artisan route:cache
-
-
 ```
 
 ## 10. 🌐 Install & Configure Nginx :
 
 ```bash
 sudo apt install nginx -y
-
 ```
 
 ### Stop Apache if it's running:
@@ -172,7 +151,6 @@ sudo apt install nginx -y
 ```bash
 sudo systemctl stop apache2
 sudo systemctl disable apache2
-
 ```
 
 ### 📝 Create Nginx Config :
@@ -216,7 +194,6 @@ server {
 ```bash
 sudo ln -s /etc/nginx/sites-available/task-manager-api /etc/nginx/sites-enabled/task-manager-api
 sudo rm /etc/nginx/sites-enabled/default 2>/dev/null || true
-
 ```
 
 ### 🧪 Test and Restart Nginx:
@@ -225,12 +202,10 @@ sudo rm /etc/nginx/sites-enabled/default 2>/dev/null || true
 sudo nginx -t
 sudo systemctl restart nginx
 sudo systemctl status nginx
-
 ```
 
 ### Deployment Complete:
 
 ```bash
 http://your-ec2-ip/
-
 ```
