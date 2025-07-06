@@ -1,4 +1,4 @@
-# 🚀 Laravel Deployment to AWS EC2 (Ubuntu + PHP 8.3)
+# Laravel Deployment to AWS EC2 (Ubuntu + PHP 8.3)
 
 This guide will help you deploy your Laravel app on an **AWS EC2 Ubuntu instance** running **PHP 8.3**.
 
@@ -7,7 +7,7 @@ This guide will help you deploy your Laravel app on an **AWS EC2 Ubuntu instance
 ## ✅ Prerequisites
 
 -   AWS EC2 instance with Ubuntu
--   `.pem` SSH key
+-   `.pem` SSH key (essential)
 -   Laravel project repo: [`task-manager-api`](https://github.com/sam002696/task-manager-api.git)
 
 ---
