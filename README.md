@@ -1,66 +1,236 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🚀 Laravel Deployment to AWS EC2 (Ubuntu + PHP 8.3)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This guide will help you deploy your Laravel app on an **AWS EC2 Ubuntu instance** running **PHP 8.3**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## ✅ Prerequisites
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+-   AWS EC2 instance with Ubuntu
+-   `.pem` SSH key
+-   Laravel project repo: [`task-manager-api`](https://github.com/sam002696/task-manager-api.git)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 1. 🔐 Connect to EC2
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+```bash
+chmod 400 /path/to/your-key.pem
+ssh -i /path/to/your-key.pem ubuntu@your-ec2-ip
+```
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 2. Clone the Laravel Project
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone https://github.com/sam002696/task-manager-api.git
+```
 
-## Laravel Sponsors
+## Create web root directory if it doesn't exist:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+sudo mkdir -p /var/www
+sudo mv ~/task-manager-api /var/www/task-manager-api
 
-### Premium Partners
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## 3. 🔧 Set Permissions
 
-## Contributing
+```bash
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+sudo chown -R $USER:www-data /var/www/task-manager-api/storage
+sudo chown -R $USER:www-data /var/www/task-manager-api/bootstrap/cache
 
-## Code of Conduct
+sudo chmod -R 775 /var/www/task-manager-api/storage
+sudo chmod -R 775 /var/www/task-manager-api/bootstrap/cache
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
 
-## Security Vulnerabilities
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 4. 🛠️ Install PHP & Extensions
 
-## License
+```bash
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+sudo apt update && sudo apt upgrade -y
+
+sudo apt install php php-cli php-mbstring php-xml php-bcmath php-curl php-zip php-mysql php-common php-tokenizer php-gd php-fpm unzip curl -y
+
+
+```
+
+## 5. 📦 Install Composer
+
+```bash
+
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+
+
+
+```
+
+## 6. 📦 Install & Configure MySQL
+
+```bash
+
+sudo apt install mysql-server -y
+sudo mysql_secure_installation
+
+
+```
+
+### To allow external DB access (optional):
+
+```bash
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+
+
+```
+
+### Change:
+
+```bash
+bind-address = 0.0.0.0
+
+```
+
+### Restart MySQL:
+
+```bash
+sudo systemctl restart mysql
+
+```
+
+### Create Database & User
+
+```bash
+sudo mysql -u root
+
+```
+
+### Inside MySQL shell:
+
+```bash
+CREATE DATABASE laravel_app;
+CREATE USER 'laravel_user'@'localhost' IDENTIFIED BY 'YourStrongPasswordHere';
+GRANT ALL PRIVILEGES ON laravel_app.* TO 'laravel_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+### Fix Access Denied Errors (Optional):
+
+```bash
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'YourRootPasswordHere';
+FLUSH PRIVILEGES;
+
+```
+
+## 7. ⚙️ Set Up Laravel Environment
+
+```bash
+cd /var/www/task-manager-api
+sudo cp .env.example .env
+sudo nano .env
+```
+
+### Update DB section:
+
+```bash
+DB_DATABASE=laravel_app
+DB_USERNAME=laravel_user
+DB_PASSWORD=YourStrongPasswordHere
+```
+
+## 8. 📦 Install Laravel Dependencies :
+
+```bash
+cd /var/www/task-manager-api
+sudo composer install
+
+```
+
+## 9. 🔐 Laravel Key & Migrate :
+
+```bash
+sudo php artisan key:generate
+sudo php artisan migrate
+sudo php artisan config:cache
+sudo php artisan route:cache
+
+
+```
+
+## 10. 🌐 Install & Configure Nginx :
+
+```bash
+sudo apt install nginx -y
+
+```
+
+### Stop Apache if it's running:
+
+```bash
+sudo systemctl stop apache2
+sudo systemctl disable apache2
+
+```
+
+### 📝 Create Nginx Config :
+
+```bash
+sudo nano /etc/nginx/sites-available/task-manager-api
+```
+
+### Paste the following:
+
+```nginx
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    server_name _;
+
+    root /var/www/task-manager-api/public;
+
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
+
+### 🔗 Enable Site & Disable Default:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/task-manager-api /etc/nginx/sites-enabled/task-manager-api
+sudo rm /etc/nginx/sites-enabled/default 2>/dev/null || true
+
+```
+
+### 🧪 Test and Restart Nginx:
+
+```bash
+sudo nginx -t
+sudo systemctl restart nginx
+sudo systemctl status nginx
+
+```
+
+### Deployment Complete:
+
+```bash
+http://your-ec2-ip/
+
+```
