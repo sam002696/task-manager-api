@@ -4,7 +4,7 @@ This guide will help you deploy your Laravel app on an **AWS EC2 Ubuntu instance
 
 ---
 
-## ✅ Prerequisites
+## Prerequisites
 
 -   AWS EC2 instance with Ubuntu
 -   `.pem` SSH key (essential)
@@ -209,3 +209,99 @@ sudo systemctl status nginx
 ```bash
 http://your-ec2-ip/
 ```
+
+## 🚀 Next Steps: Map Vercel Subdomain + Enable HTTPS with Certbot
+
+This section helps you map your EC2 Laravel API to a subdomain like `api.example.xyz` and secure it with HTTPS.
+
+---
+
+## Step 1: Add A Record in Vercel DNS
+
+1. Go to: [https://vercel.com/dashboard](https://vercel.com/dashboard)
+2. Click **Domains** > Choose `example.xyz`
+3. Go to the **DNS** tab
+4. Click **Add Record**:
+
+```bash
+Type: A
+Name: api
+Value: 13.215.250.73 ← (your EC2 IP)
+TTL: 3600
+```
+
+-🕓 Wait **5–10 minutes** for DNS propagation.
+
+-   This will map: api.`example.xyz` → your EC2 server
+
+## Step 2: Create Nginx Config for the Subdomain
+
+Instead of using `default_server`, create a dedicated config:
+
+```bash
+sudo nano /etc/nginx/sites-available/api.example.xyz
+```
+
+```nginx
+server {
+    listen 80;
+    server_name api.example.xyz;
+
+    root /var/www/task-manager-api/public;
+    index index.php index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+```
+
+## Step 3: Enable the Nginx Config
+
+```bash
+sudo ln -s /etc/nginx/sites-available/api.example.xyz /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Visit :
+
+```bash
+http://api.example.xyz
+```
+
+## Step 4: Install Certbot & Enable HTTPS
+
+### Install certbot
+
+```bash
+sudo apt install certbot python3-certbot-nginx -y
+```
+
+### Request SSL Certificate:
+
+```bash
+sudo certbot --nginx -d api.example.xyz
+```
+
+-   Certbot will auto-detect the config.
+-   Say YES to "Redirect HTTP to HTTPS".
+
+## Step 5: Verify HTTPS
+
+```bash
+https://api.example.xyz
+```
+
+-   You should see your Laravel API with a secure 🔒 HTTPS connection.
