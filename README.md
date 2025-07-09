@@ -230,7 +230,7 @@ Value: 13.215.250.73 ← (your EC2 IP)
 TTL: 3600
 ```
 
--🕓 Wait **5–10 minutes** for DNS propagation.
+-   🕓 Wait **5–10 minutes** for DNS propagation.
 
 -   This will map: api.`example.xyz` → your EC2 server
 
